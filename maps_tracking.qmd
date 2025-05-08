@@ -1,0 +1,54 @@
+
+
+
+```{python}
+from geopy.geocoders import Nominatim
+import pandas as pd
+import time
+
+import streamlit as st
+
+# 1. Load your Companies sheet
+df = pd.read_excel("data/crm_test_case_data.xlsx", sheet_name="Companies")
+
+# 2. Create geolocator
+geolocator = Nominatim(user_agent="crm-territory-mapper")
+
+# 3. Geocode each address
+lats, lons = [], []
+for addr in df["Address"]:
+    loc = geolocator.geocode(addr)
+    if loc:
+        lats.append(loc.latitude)
+        lons.append(loc.longitude)
+    else:
+        lats.append(None)
+        lons.append(None)
+    time.sleep(1)  # be kind to the API!
+
+df["Latitude"] = lats
+df["Longitude"] = lons
+
+
+# 4. Save out for mapping
+df.to_csv("data/companies_geocoded.csv", index=False)
+
+```
+
+```{python}
+people = pd.read_excel("data/crm_test_case_data.xlsx", sheet_name="People")
+
+# Check unique companies in each
+company_list = set(df["Company Name"].unique())
+people_company_list = set(people["Company"].unique())
+
+# Find mismatches
+missing_in_companies = people_company_list - company_list
+missing_in_people = company_list - people_company_list
+
+print(
+    "Companies referenced in People but missing from Companies sheet:",
+    missing_in_companies,
+)
+print("Companies in Companies sheet but missing in People sheet:", missing_in_people)
+```
