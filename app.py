@@ -2,20 +2,27 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+from modules.load_data import load_people, load_companies
 
 
 st.set_page_config(layout="wide")
 
 # Load data
-people = pd.read_csv("data/people_industry.csv")
-companies = pd.read_csv("data/companies_geocoded.csv")
+people = load_people()
+companies = load_companies()
+
+# Ensure 'Status' column exists, default to "open"
+# if "Status" not in people.columns:
+#     people["Status"] = "open"
+# else:
+#     people["Status"] = people["Status"].fillna("open")
 
 st.title("CRM - Clients Dashboard")
 
 # Filters
 st.sidebar.header("Filters")
 industry = st.sidebar.selectbox(
-    "LLM Industry", ["All"] + sorted(people["LLM Industry"].dropna().unique().tolist())
+    "LLM Industry", ["All"] + sorted(people["LLM_Industry"].dropna().unique().tolist())
 )
 status = st.sidebar.multiselect(
     "Status", people["Status"].unique(), default=people["Status"].unique()
@@ -24,7 +31,7 @@ status = st.sidebar.multiselect(
 # Apply filters
 filtered = people.copy()
 if industry != "All":
-    filtered = filtered[filtered["LLM Industry"] == industry]
+    filtered = filtered[filtered["LLM_Industry"] == industry]
 if status:
     filtered = filtered[filtered["Status"].isin(status)]
 
