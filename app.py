@@ -25,14 +25,110 @@ def save_log_entry(client_id, note, date):
     logs.to_csv(LOG_FILE, index=False)
 
 
+def get_recent_contact_metrics(filtered_client_ids, days=7):
+    logs = load_logs()
+    if logs.empty or not filtered_client_ids:
+        return 0
+
+    # Convert to datetime
+    logs["Date"] = pd.to_datetime(logs["Date"], errors="coerce")
+
+    # Filter logs to only relevant client IDs
+    logs = logs[logs["Client ID"].isin(filtered_client_ids)]
+
+    # Get latest contact date per client
+    latest_contact = logs.groupby("Client ID")["Date"].max().reset_index()
+
+    # Filter based on recent days
+    cutoff = pd.Timestamp.today() - pd.Timedelta(days=days)
+    recent_contacts = latest_contact[latest_contact["Date"] >= cutoff]
+
+    return len(recent_contacts)
+
+
+def show_companies_tab():
+    st.title("🏢 Companies")
+
+    companies = load_companies()  # Your companies dataset
+
+    # Sidebar or top-level filters
+    industries = sorted(companies["Industry"].dropna().unique())
+    selected_industries = st.multiselect(
+        "Filter by Industry", industries, default=industries
+    )
+
+    keyword = st.text_input("Search by keyword (e.g. name)")
+
+    min_rev, max_rev = companies["Revenue"].min(), companies["Revenue"].max()
+    revenue_range = st.slider(
+        "Filter by Revenue",
+        min_value=float(min_rev),
+        max_value=float(max_rev),
+        value=(float(min_rev), float(max_rev)),
+    )
+
+    # Apply filters
+    filtered_df = companies[
+        companies["Industry"].isin(selected_industries)
+        & companies["Revenue"].between(revenue_range[0], revenue_range[1])
+    ]
+
+    if keyword:
+        filtered_df = filtered_df[
+            companies["Company Name"].str.contains(keyword, case=False)
+        ]
+
+    # KPI cards
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("🏢 Companies", len(filtered_df))
+    with col2:
+        st.metric("💰 Total Revenue", f"${filtered_df['Revenue'].sum():,.0f}")
+
+    # Placeholder for Map (e.g. using lat/lon)
+    if "Latitude" in filtered_df and "Longitude" in filtered_df:
+        map_df = filtered_df.dropna(subset=["Latitude", "Longitude"])
+        st.map(map_df.rename(columns={"Latitude": "lat", "Longitude": "lon"}))
+
+    # Revenue by industry
+    st.subheader("Revenue by Industry")
+    rev_by_industry = (
+        filtered_df.groupby("Industry")["Revenue"]
+        .sum()
+        .reset_index()
+        .sort_values(by="Revenue", ascending=False)
+    )
+    fig = px.bar(
+        rev_by_industry, x="Industry", y="Revenue", title="Revenue by Industry"
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Company list
+    st.subheader("Company List")
+    st.dataframe(filtered_df)
+
+    # Optional: expand for company details
+
+
 st.set_page_config(layout="wide")
 
 # Load data
 people = load_people()
-companies = load_companies()
 
+tab = st.sidebar.radio("Navigate", ["Clients", "Companies"])
+if tab == "Companies":
+    show_companies_tab()
 
-st.title("CRM - Clients Dashboard")
+col_title, col_metric1, col_metric2 = st.columns([4, 1, 1])
+
+with col_title:
+    st.title("CRM - Clients Dashboard")
+
+with col_metric1:
+    st.metric("Total Clients", len(people))
+
+with col_metric2:
+    st.metric("Total Unique Companies", people["Company"].nunique())
 
 # Filters
 st.sidebar.header("Filters")
@@ -51,18 +147,30 @@ if status:
     filtered = filtered[filtered["Status"].isin(status)]
 
 # Metrics
-met1, met2, met3, met4 = st.columns(4)
+met1, met2 = st.columns(2)
 with met1:
-    st.metric("Filtered Clients", len(filtered))
+    st.metric("\U0001f9d1\u200d\U0001f4bc Filtered Clients", len(filtered))
 with met2:
-    st.metric("Unique Filtered Companies", filtered["Company"].nunique())
-with met3:
-    st.metric("Total Clients", len(people))
-with met4:
-    st.metric("Total Unique Companies", people["Company"].nunique())
+    st.metric("\U0001f3e2 Unique Filtered Companies", filtered["Company"].nunique())
+
+
+filtered_client_ids = filtered["Client ID"].unique().tolist()
+met5, met6 = st.columns(2)
+
+with met5:
+    st.metric(
+        "👥 Contacted in last 7 days",
+        get_recent_contact_metrics(filtered_client_ids, 7),
+    )
+
+with met6:
+    st.metric(
+        "📆 Contacted in last 30 days",
+        get_recent_contact_metrics(filtered_client_ids, 30),
+    )
 
 # Simulate row selection with a selectbox to choose a client
-st.subheader("Select a Client for Action")
+st.subheader("\U0001f9d1\u200d\U0001f4bc Select a Client for Action")
 
 if not filtered.empty:
     selected_client = st.selectbox(
@@ -129,7 +237,7 @@ if not filtered.empty:
 #         )
 
 
-st.subheader("Actions")
+st.subheader("\U0001f6e0\U0000fe0f Actions")
 
 left_col, right_col = st.columns(2)
 
@@ -146,7 +254,7 @@ with left_col:
         "on hold",
     ]
     new_status = st.selectbox("Select new status", status_options, key="status_select")
-    if st.button("Confirm Status Update", key="status_button"):
+    if st.button("\U00002757 Confirm Status Update", key="status_button"):
         people.loc[people["Client ID"] == selected_client, "Status"] = new_status
         save_people(people)
         st.success(
@@ -157,7 +265,10 @@ with left_col:
 with right_col:
     st.markdown("**Review/Override Industry**")
     new_industry = st.text_input("Enter correct industry", key="industry_input")
-    if st.button("Confirm Industry Update", key="industry_button") and new_industry:
+    if (
+        st.button("\U00002705 Confirm Industry Update", key="industry_button")
+        and new_industry
+    ):
         people.loc[people["Client ID"] == selected_client, "LLM_Industry"] = (
             new_industry
         )
@@ -167,17 +278,49 @@ with right_col:
         )
 
 
-st.subheader("📞 Log Call / Note")
+# st.subheader("📞 Log Call / Note")
 
-note = st.text_area("Add a note or call summary")
-note_date = st.date_input("Date of contact", value=datetime.date.today())
+# note = st.text_area("Add a note or call summary")
+# note_date = st.date_input("Date of contact", value=datetime.date.today())
 
-if st.button("Save Note"):
-    if note.strip():
-        save_log_entry(selected_client, note, note_date)
-        st.success("Note logged successfully!")
+# if st.button("Save Note"):
+#     if note.strip():
+#         save_log_entry(selected_client, note, note_date)
+#         st.success("Note logged successfully!")
+#     else:
+#         st.warning("Please write a note before saving.")
+
+
+# st.markdown("### 📋 Communication History")
+
+# logs = load_logs()
+# client_logs = logs[logs["Client ID"] == selected_client]
+
+# if client_logs.empty:
+#     st.info("No notes logged yet for this client.")
+# else:
+#     st.dataframe(client_logs.sort_values(by="Date", ascending=False))
+
+
+with st.expander("📞 Log Call / Note"):
+    note = st.text_area("Add a note or call summary")
+    note_date = st.date_input("Date of contact", value=datetime.date.today())
+
+    if st.button("Save Note"):
+        if note.strip():
+            save_log_entry(selected_client, note, note_date)
+            st.success("Note logged successfully!")
+        else:
+            st.warning("Please write a note before saving.")
+
+with st.expander("📋 Communication History"):
+    logs = load_logs()
+    client_logs = logs[logs["Client ID"] == selected_client]
+
+    if client_logs.empty:
+        st.info("No notes logged yet for this client.")
     else:
-        st.warning("Please write a note before saving.")
+        st.dataframe(client_logs.sort_values(by="Date", ascending=False))
 
 
 # Charts
@@ -191,6 +334,22 @@ fig = px.bar(
     title="Personnel per Company",
 )
 st.plotly_chart(fig, use_container_width=True)
+
+
+def get_latest_contact_dates():
+    logs = load_logs()
+    if logs.empty:
+        return pd.DataFrame(columns=["Client ID", "Last Contacted"])
+
+    logs["Date"] = pd.to_datetime(logs["Date"], errors="coerce")
+    latest = logs.groupby("Client ID")["Date"].max().reset_index()
+    latest.rename(columns={"Date": "Last Contacted"}, inplace=True)
+    return latest
+
+
+# Merge latest contact info
+latest_contacts_df = get_latest_contact_dates()
+filtered = filtered.merge(latest_contacts_df, on="Client ID", how="left")
 
 # Table
 st.subheader("Client List")

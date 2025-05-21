@@ -28,5 +28,8 @@ def save_people(df, path="data/updated_people.xlsx"):
         df.to_excel(writer, sheet_name="People", index=False)
 
 
-def load_companies(path="data/crm_test_case_data.xlsx"):
-    return pd.read_excel(path, sheet_name="Companies")
+def load_companies(path="data/companies_geocoded.csv"):
+    com_df = pd.read_csv(path)
+    com_df = com_df.rename(columns={"Revenue (in Millions)": "Revenue"})
+    com_df["Latitude"].replace({None, 0})
+    return com_df
