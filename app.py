@@ -46,10 +46,19 @@ def get_recent_contact_metrics(filtered_client_ids, days=7):
     return len(recent_contacts)
 
 
-def show_companies_tab():
-    st.title("🏢 Companies")
+def get_latest_contact_dates():
+    logs = load_logs()
+    if logs.empty:
+        return pd.DataFrame(columns=["Client ID", "Last Contacted"])
 
-    companies = load_companies()  # Your companies dataset
+    logs["Date"] = pd.to_datetime(logs["Date"], errors="coerce")
+    latest = logs.groupby("Client ID")["Date"].max().reset_index()
+    latest.rename(columns={"Date": "Last Contacted"}, inplace=True)
+    return latest
+
+
+def show_companies_tab(companies):
+    st.title("🏢 Companies")
 
     # Sidebar or top-level filters
     industries = sorted(companies["Industry"].dropna().unique())
@@ -76,7 +85,14 @@ def show_companies_tab():
     if keyword:
         filtered_df = filtered_df[
             companies["Company Name"].str.contains(keyword, case=False)
+            | companies["Address"].str.contains(keyword, case=False)
         ]
+
+    # selected_industry = st.selectbox(
+    #     "Filter companies on map by industry", companies["Industry"].unique()
+    # )
+
+    # map_df = companies[companies["Industry"] == selected_industry]
 
     # KPI cards
     col1, col2 = st.columns(2)
@@ -86,9 +102,30 @@ def show_companies_tab():
         st.metric("💰 Total Revenue", f"${filtered_df['Revenue'].sum():,.0f}")
 
     # Placeholder for Map (e.g. using lat/lon)
-    if "Latitude" in filtered_df and "Longitude" in filtered_df:
-        map_df = filtered_df.dropna(subset=["Latitude", "Longitude"])
-        st.map(map_df.rename(columns={"Latitude": "lat", "Longitude": "lon"}))
+    # if "Latitude" in filtered_df and "Longitude" in filtered_df:
+    #     map_df = filtered_df.dropna(subset=["Latitude", "Longitude"])
+    #     st.map(map_df.rename(columns={"Latitude": "lat", "Longitude": "lon"}))
+
+    st.subheader("📍 Company Locations")
+    map_df = filtered_df.dropna(subset=["Latitude", "Longitude"])
+
+    fig1 = px.scatter_mapbox(
+        map_df,
+        lat="Latitude",
+        lon="Longitude",
+        hover_name="Company Name",
+        hover_data=["Industry", "Revenue"],
+        color="Industry",  # optional
+        size_max=10,
+        zoom=1,
+        height=500,
+    )
+
+    fig1.update_layout(
+        mapbox_style="open-street-map", margin={"r": 0, "t": 0, "l": 0, "b": 0}
+    )
+
+    st.plotly_chart(fig1, use_container_width=True)
 
     # Revenue by industry
     st.subheader("Revenue by Industry")
@@ -110,247 +147,262 @@ def show_companies_tab():
     # Optional: expand for company details
 
 
+def show_clients_tab(people):
+
+    col_title, col_metric1, col_metric2 = st.columns([4, 1, 1])
+
+    with col_title:
+        st.title("CRM - Clients Dashboard")
+
+    with col_metric1:
+        st.metric("Total Clients", len(people))
+
+    with col_metric2:
+        st.metric("Total Unique Companies", people["Company"].nunique())
+
+    # Filters
+    st.sidebar.header("Filters")
+    industry = st.sidebar.selectbox(
+        "LLM Industry",
+        ["All"] + sorted(people["LLM_Industry"].dropna().unique().tolist()),
+    )
+    status = st.sidebar.multiselect(
+        "Status", people["Status"].unique(), default=people["Status"].unique()
+    )
+
+    # Apply filters
+    filtered = people.copy()
+    if industry != "All":
+        filtered = filtered[filtered["LLM_Industry"] == industry]
+    if status:
+        filtered = filtered[filtered["Status"].isin(status)]
+
+    # Metrics
+    met1, met2 = st.columns(2)
+    with met1:
+        st.metric("\U0001f9d1\u200d\U0001f4bc Filtered Clients", len(filtered))
+    with met2:
+        st.metric("\U0001f3e2 Unique Filtered Companies", filtered["Company"].nunique())
+
+    filtered_client_ids = filtered["Client ID"].unique().tolist()
+    met5, met6 = st.columns(2)
+
+    with met5:
+        st.metric(
+            "👥 Contacted in last 7 days",
+            get_recent_contact_metrics(filtered_client_ids, 7),
+        )
+
+    with met6:
+        st.metric(
+            "📆 Contacted in last 30 days",
+            get_recent_contact_metrics(filtered_client_ids, 30),
+        )
+
+    # Simulate row selection with a selectbox to choose a client
+    st.subheader("\U0001f9d1\u200d\U0001f4bc Select a Client for Action")
+
+    if not filtered.empty:
+        selected_client = st.selectbox(
+            "Choose client", options=filtered["Client ID"].unique()
+        )
+
+        client_row = filtered[filtered["Client ID"] == selected_client].iloc[0]
+
+        # Two-column layout for client details
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown(f"**Company:** {client_row['Company']}")
+            st.markdown(f"**Job Title:** {client_row['Title']}")
+            st.markdown(
+                f"**Total Industry Revenue:** {client_row['Total Industry Revenue']}"
+            )
+
+        with col2:
+            st.markdown(f"**Current Status:** {client_row['Status']}")
+            st.markdown(f"**Current LLM Industry:** {client_row['LLM_Industry']}")
+            # st.markdown(f"**Last Contated Date:** {client_row['Last Contacted']}")
+
+    # Action buttons
+    # st.subheader("Actions")
+
+    # # Update Status
+    # status_options = [
+    #     "open",
+    #     "contacted",
+    #     "engaged",
+    #     "negotiation",
+    #     "won",
+    #     "lost",
+    #     "on hold",
+    # ]
+    # new_status = st.selectbox("Update Status", status_options)
+
+    # # if st.button("Confirm Status Update"):
+    # #     people.loc[people["Client ID"] == selected_client, "Status"] = new_status
+    # #     save_people(people)  # Save after status update
+    # #     st.success(f"Status updated to **{new_status}** for {selected_client}.")
+
+    # # Override LLM Industry
+    # new_industry = st.text_input("Correct LLM Industry")
+
+    # # if st.button("Confirm Industry Update") and new_industry:
+    # #     people.loc[people["Client ID"] == selected_client, "LLM_Industry"] = new_industry
+    # #     save_people(people)  # Save after industry update
+    # #     st.success(f"LLM Industry updated to **{new_industry}** for {selected_client}.")
+
+    # col1, col2 = st.columns(2)
+
+    # with col1:
+    #     if st.button("Confirm Status Update"):
+    #         people.loc[people["Client ID"] == selected_client, "Status"] = new_status
+    #         save_people(people)
+    #         st.success(f"Status updated to **{new_status}** for {client_row['Client ID']}.")
+
+    # with col2:
+    #     if st.button("Confirm Industry Update") and new_industry:
+    #         people.loc[people["Client ID"] == selected_client, "LLM_Industry"] = (
+    #             new_industry
+    #         )
+    #         save_people(people)
+    #         st.success(
+    #             f"LLM Industry updated to **{new_industry}** for {client_row['Client ID']}."
+    #         )
+
+    st.subheader("\U0001f6e0\U0000fe0f Actions")
+
+    left_col, right_col = st.columns(2)
+
+    # 🪪 Status Update (Left Column)
+    with left_col:
+        st.markdown("**Update Status**")
+        status_options = [
+            "open",
+            "contacted",
+            "engaged",
+            "negotiation",
+            "won",
+            "lost",
+            "on hold",
+        ]
+        new_status = st.selectbox(
+            "Select new status", status_options, key="status_select"
+        )
+        if st.button("\U00002757 Confirm Status Update", key="status_button"):
+            people.loc[people["Client ID"] == selected_client, "Status"] = new_status
+            save_people(people)
+            st.success(
+                f"✅ Status updated to **{new_status}** for {client_row['Client ID']}."
+            )
+
+    # 🏷️ Industry Override (Right Column)
+    with right_col:
+        st.markdown("**Review/Override Industry**")
+        new_industry = st.text_input("Enter correct industry", key="industry_input")
+        if (
+            st.button("\U00002705 Confirm Industry Update", key="industry_button")
+            and new_industry
+        ):
+            people.loc[people["Client ID"] == selected_client, "LLM_Industry"] = (
+                new_industry
+            )
+            save_people(people)
+            st.success(
+                f"✅ Industry updated to **{new_industry}** for {client_row['Client ID']}."
+            )
+
+    # st.subheader("📞 Log Call / Note")
+
+    # note = st.text_area("Add a note or call summary")
+    # note_date = st.date_input("Date of contact", value=datetime.date.today())
+
+    # if st.button("Save Note"):
+    #     if note.strip():
+    #         save_log_entry(selected_client, note, note_date)
+    #         st.success("Note logged successfully!")
+    #     else:
+    #         st.warning("Please write a note before saving.")
+
+    # st.markdown("### 📋 Communication History")
+
+    # logs = load_logs()
+    # client_logs = logs[logs["Client ID"] == selected_client]
+
+    # if client_logs.empty:
+    #     st.info("No notes logged yet for this client.")
+    # else:
+    #     st.dataframe(client_logs.sort_values(by="Date", ascending=False))
+
+    with st.expander("📞 Log Call / Note"):
+        note = st.text_area("Add a note or call summary")
+        note_date = st.date_input("Date of contact", value=datetime.date.today())
+
+        if st.button("Save Note"):
+            if note.strip():
+                save_log_entry(selected_client, note, note_date)
+                st.success("Note logged successfully!")
+            else:
+                st.warning("Please write a note before saving.")
+
+    with st.expander("📋 Communication History"):
+        logs = load_logs()
+        client_logs = logs[logs["Client ID"] == selected_client]
+
+        if client_logs.empty:
+            st.info("No notes logged yet for this client.")
+        else:
+            st.dataframe(client_logs.sort_values(by="Date", ascending=False))
+
+    # Charts
+    personnel_counts = filtered["Company"].value_counts().reset_index()
+    personnel_counts.columns = ["Company", "Count"]
+    fig = px.bar(
+        personnel_counts,
+        x="Count",
+        y="Company",
+        orientation="h",
+        title="Personnel per Company",
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Merge latest contact info
+    latest_contacts_df = get_latest_contact_dates()
+    filtered = filtered.merge(latest_contacts_df, on="Client ID", how="left")
+
+    # Table
+    st.subheader("Client List")
+    st.dataframe(filtered, use_container_width=True)
+
+
 st.set_page_config(layout="wide")
 
 # Load data
 people = load_people()
+companies = load_companies()  # Your companies dataset
+
+industry_revenue = companies.groupby("Industry")["Revenue"].sum().reset_index().round(2)
+industry_revenue.rename(columns={"Revenue": "Total Industry Revenue"}, inplace=True)
+
+people = people.merge(
+    industry_revenue, how="left", left_on="LLM_Industry", right_on="Industry"
+)
+
 
 tab = st.sidebar.radio("Navigate", ["Clients", "Companies"])
-if tab == "Companies":
-    show_companies_tab()
+# if tab == "Companies":
+#     show_companies_tab()
 
-col_title, col_metric1, col_metric2 = st.columns([4, 1, 1])
+# Clear and isolate page layout
+st.markdown("---")
+st.markdown("<style>body {overflow-x: hidden;}</style>", unsafe_allow_html=True)
 
-with col_title:
-    st.title("CRM - Clients Dashboard")
+if tab == "Clients":
+    # st.markdown("## Clients")
+    show_clients_tab(people)
+    st.markdown("<div style='height:200px;'></div>", unsafe_allow_html=True)
 
-with col_metric1:
-    st.metric("Total Clients", len(people))
-
-with col_metric2:
-    st.metric("Total Unique Companies", people["Company"].nunique())
-
-# Filters
-st.sidebar.header("Filters")
-industry = st.sidebar.selectbox(
-    "LLM Industry", ["All"] + sorted(people["LLM_Industry"].dropna().unique().tolist())
-)
-status = st.sidebar.multiselect(
-    "Status", people["Status"].unique(), default=people["Status"].unique()
-)
-
-# Apply filters
-filtered = people.copy()
-if industry != "All":
-    filtered = filtered[filtered["LLM_Industry"] == industry]
-if status:
-    filtered = filtered[filtered["Status"].isin(status)]
-
-# Metrics
-met1, met2 = st.columns(2)
-with met1:
-    st.metric("\U0001f9d1\u200d\U0001f4bc Filtered Clients", len(filtered))
-with met2:
-    st.metric("\U0001f3e2 Unique Filtered Companies", filtered["Company"].nunique())
-
-
-filtered_client_ids = filtered["Client ID"].unique().tolist()
-met5, met6 = st.columns(2)
-
-with met5:
-    st.metric(
-        "👥 Contacted in last 7 days",
-        get_recent_contact_metrics(filtered_client_ids, 7),
-    )
-
-with met6:
-    st.metric(
-        "📆 Contacted in last 30 days",
-        get_recent_contact_metrics(filtered_client_ids, 30),
-    )
-
-# Simulate row selection with a selectbox to choose a client
-st.subheader("\U0001f9d1\u200d\U0001f4bc Select a Client for Action")
-
-if not filtered.empty:
-    selected_client = st.selectbox(
-        "Choose client", options=filtered["Client ID"].unique()
-    )
-
-    client_row = filtered[filtered["Client ID"] == selected_client].iloc[0]
-
-    # Two-column layout for client details
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.markdown(f"**Company:** {client_row['Company']}")
-        st.markdown(f"**Job Title:** {client_row['Title']}")
-
-    with col2:
-        st.markdown(f"**Current Status:** {client_row['Status']}")
-        st.markdown(f"**Current LLM Industry:** {client_row['LLM_Industry']}")
-
-# Action buttons
-# st.subheader("Actions")
-
-# # Update Status
-# status_options = [
-#     "open",
-#     "contacted",
-#     "engaged",
-#     "negotiation",
-#     "won",
-#     "lost",
-#     "on hold",
-# ]
-# new_status = st.selectbox("Update Status", status_options)
-
-# # if st.button("Confirm Status Update"):
-# #     people.loc[people["Client ID"] == selected_client, "Status"] = new_status
-# #     save_people(people)  # Save after status update
-# #     st.success(f"Status updated to **{new_status}** for {selected_client}.")
-
-# # Override LLM Industry
-# new_industry = st.text_input("Correct LLM Industry")
-
-# # if st.button("Confirm Industry Update") and new_industry:
-# #     people.loc[people["Client ID"] == selected_client, "LLM_Industry"] = new_industry
-# #     save_people(people)  # Save after industry update
-# #     st.success(f"LLM Industry updated to **{new_industry}** for {selected_client}.")
-
-# col1, col2 = st.columns(2)
-
-# with col1:
-#     if st.button("Confirm Status Update"):
-#         people.loc[people["Client ID"] == selected_client, "Status"] = new_status
-#         save_people(people)
-#         st.success(f"Status updated to **{new_status}** for {client_row['Client ID']}.")
-
-# with col2:
-#     if st.button("Confirm Industry Update") and new_industry:
-#         people.loc[people["Client ID"] == selected_client, "LLM_Industry"] = (
-#             new_industry
-#         )
-#         save_people(people)
-#         st.success(
-#             f"LLM Industry updated to **{new_industry}** for {client_row['Client ID']}."
-#         )
-
-
-st.subheader("\U0001f6e0\U0000fe0f Actions")
-
-left_col, right_col = st.columns(2)
-
-# 🪪 Status Update (Left Column)
-with left_col:
-    st.markdown("**Update Status**")
-    status_options = [
-        "open",
-        "contacted",
-        "engaged",
-        "negotiation",
-        "won",
-        "lost",
-        "on hold",
-    ]
-    new_status = st.selectbox("Select new status", status_options, key="status_select")
-    if st.button("\U00002757 Confirm Status Update", key="status_button"):
-        people.loc[people["Client ID"] == selected_client, "Status"] = new_status
-        save_people(people)
-        st.success(
-            f"✅ Status updated to **{new_status}** for {client_row['Client ID']}."
-        )
-
-# 🏷️ Industry Override (Right Column)
-with right_col:
-    st.markdown("**Review/Override Industry**")
-    new_industry = st.text_input("Enter correct industry", key="industry_input")
-    if (
-        st.button("\U00002705 Confirm Industry Update", key="industry_button")
-        and new_industry
-    ):
-        people.loc[people["Client ID"] == selected_client, "LLM_Industry"] = (
-            new_industry
-        )
-        save_people(people)
-        st.success(
-            f"✅ Industry updated to **{new_industry}** for {client_row['Client ID']}."
-        )
-
-
-# st.subheader("📞 Log Call / Note")
-
-# note = st.text_area("Add a note or call summary")
-# note_date = st.date_input("Date of contact", value=datetime.date.today())
-
-# if st.button("Save Note"):
-#     if note.strip():
-#         save_log_entry(selected_client, note, note_date)
-#         st.success("Note logged successfully!")
-#     else:
-#         st.warning("Please write a note before saving.")
-
-
-# st.markdown("### 📋 Communication History")
-
-# logs = load_logs()
-# client_logs = logs[logs["Client ID"] == selected_client]
-
-# if client_logs.empty:
-#     st.info("No notes logged yet for this client.")
-# else:
-#     st.dataframe(client_logs.sort_values(by="Date", ascending=False))
-
-
-with st.expander("📞 Log Call / Note"):
-    note = st.text_area("Add a note or call summary")
-    note_date = st.date_input("Date of contact", value=datetime.date.today())
-
-    if st.button("Save Note"):
-        if note.strip():
-            save_log_entry(selected_client, note, note_date)
-            st.success("Note logged successfully!")
-        else:
-            st.warning("Please write a note before saving.")
-
-with st.expander("📋 Communication History"):
-    logs = load_logs()
-    client_logs = logs[logs["Client ID"] == selected_client]
-
-    if client_logs.empty:
-        st.info("No notes logged yet for this client.")
-    else:
-        st.dataframe(client_logs.sort_values(by="Date", ascending=False))
-
-
-# Charts
-personnel_counts = filtered["Company"].value_counts().reset_index()
-personnel_counts.columns = ["Company", "Count"]
-fig = px.bar(
-    personnel_counts,
-    x="Count",
-    y="Company",
-    orientation="h",
-    title="Personnel per Company",
-)
-st.plotly_chart(fig, use_container_width=True)
-
-
-def get_latest_contact_dates():
-    logs = load_logs()
-    if logs.empty:
-        return pd.DataFrame(columns=["Client ID", "Last Contacted"])
-
-    logs["Date"] = pd.to_datetime(logs["Date"], errors="coerce")
-    latest = logs.groupby("Client ID")["Date"].max().reset_index()
-    latest.rename(columns={"Date": "Last Contacted"}, inplace=True)
-    return latest
-
-
-# Merge latest contact info
-latest_contacts_df = get_latest_contact_dates()
-filtered = filtered.merge(latest_contacts_df, on="Client ID", how="left")
-
-# Table
-st.subheader("Client List")
-st.dataframe(filtered, use_container_width=True)
+elif tab == "Companies":
+    # st.markdown("## Companies")
+    show_companies_tab(companies)
+    st.markdown("<div style='height:200px;'></div>", unsafe_allow_html=True)

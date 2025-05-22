@@ -31,5 +31,5 @@ def save_people(df, path="data/updated_people.xlsx"):
 def load_companies(path="data/companies_geocoded.csv"):
     com_df = pd.read_csv(path)
     com_df = com_df.rename(columns={"Revenue (in Millions)": "Revenue"})
-    com_df["Latitude"].replace({None, 0})
+
     return com_df
