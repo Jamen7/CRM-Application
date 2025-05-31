@@ -3,6 +3,9 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from modules.load_data import load_people, load_companies, save_people
+import sqlite3
+
+# from datetime import datetime
 
 import datetime
 
@@ -55,6 +58,83 @@ def get_latest_contact_dates():
     latest = logs.groupby("Client ID")["Date"].max().reset_index()
     latest.rename(columns={"Date": "Last Contacted"}, inplace=True)
     return latest
+
+
+def init_db():
+    conn = sqlite3.connect("crm.db")
+    cursor = conn.cursor()
+
+    # Table to store client status and last contacted date
+    cursor.execute(
+        """
+    CREATE TABLE IF NOT EXISTS client_status (
+        client_id TEXT PRIMARY KEY,
+        status TEXT DEFAULT 'open',
+        last_contacted TEXT
+    )
+    """
+    )
+
+    # Table to store log notes
+    cursor.execute(
+        """
+    CREATE TABLE IF NOT EXISTS logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        client_id TEXT,
+        note TEXT,
+        timestamp TEXT
+    )
+    """
+    )
+
+    conn.commit()
+    conn.close()
+
+
+def update_status(client_id, new_status):
+    conn = sqlite3.connect("crm.db")
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        INSERT INTO client_status (client_id, status)
+        VALUES (?, ?)
+        ON CONFLICT(client_id) DO UPDATE SET status=excluded.status
+    """,
+        (client_id, new_status),
+    )
+    conn.commit()
+    conn.close()
+
+
+def log_call(client_id, note):
+    conn = sqlite3.connect("crm.db")
+    cursor = conn.cursor()
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    cursor.execute(
+        "INSERT INTO logs (client_id, note, timestamp) VALUES (?, ?, ?)",
+        (client_id, note, timestamp),
+    )
+
+    cursor.execute(
+        """
+        INSERT INTO client_status (client_id, last_contacted)
+        VALUES (?, ?)
+        ON CONFLICT(client_id) DO UPDATE SET last_contacted=excluded.last_contacted
+    """,
+        (client_id, timestamp),
+    )
+
+    conn.commit()
+    conn.close()
+
+
+def get_status_and_logs():
+    conn = sqlite3.connect("crm.db")
+    status_df = pd.read_sql_query("SELECT * FROM client_status", conn)
+    logs_df = pd.read_sql_query("SELECT * FROM logs", conn)
+    conn.close()
+    return status_df, logs_df
 
 
 def show_companies_tab(companies):
@@ -469,6 +549,7 @@ def show_clients_tab(people):
         st.dataframe(filtered, use_container_width=True)
 
 
+init_db()
 st.set_page_config(layout="wide")
 
 # Load data
@@ -487,6 +568,9 @@ if "Industry" in people.columns:
     people = people.drop(columns=["Industry"])
 
 # people.columns
+
+status_df, logs_df = get_status_and_logs()
+people = people.merge(status_df, on="Client ID", how="left")
 
 tab = st.sidebar.radio("Navigate", ["Clients", "Companies"])
 # if tab == "Companies":
