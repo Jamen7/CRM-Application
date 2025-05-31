@@ -378,36 +378,33 @@ def show_clients_tab(people):
 
     bar, lin = st.columns(2)
 
-    with bar:
-        if chart_type == "Bar Chart":
-            fig_bar = px.bar(
-                status_counts,
-                x="Count",
-                y="Status",
-                orientation="h",
-                color="Status",
-                text="Count",
-                color_discrete_sequence=px.colors.qualitative.Safe,
-                title="📊 Client Status Overview (Bar)",
-            )
-            fig_bar.update_layout(yaxis_title="", xaxis_title="Clients")
-            if filtered.empty:
-                st.warning("⚠️ No results match the current filter.")
-            else:
+    if filtered.empty:
+        st.warning("⚠️ No results match the current filter.")
+    else:
+        with bar:
+            if chart_type == "Bar Chart":
+                fig_bar = px.bar(
+                    status_counts,
+                    x="Count",
+                    y="Status",
+                    orientation="h",
+                    color="Status",
+                    text="Count",
+                    color_discrete_sequence=px.colors.qualitative.Safe,
+                    title="📊 Client Status Overview (Bar)",
+                )
+                fig_bar.update_layout(yaxis_title="", xaxis_title="Clients")
                 st.plotly_chart(fig_bar, use_container_width=True)
 
-        elif chart_type == "Donut Pie Chart":
-            fig_pie = px.pie(
-                status_counts,
-                names="Status",
-                values="Count",
-                hole=0.4,
-                color_discrete_sequence=px.colors.qualitative.Safe,
-                title="🧭 Client Status Distribution (Donut)",
-            )
-            if filtered.empty:
-                st.warning("⚠️ No results match the current filter.")
-            else:
+            elif chart_type == "Donut Pie Chart":
+                fig_pie = px.pie(
+                    status_counts,
+                    names="Status",
+                    values="Count",
+                    hole=0.4,
+                    color_discrete_sequence=px.colors.qualitative.Safe,
+                    title="🧭 Client Status Distribution (Donut)",
+                )
                 st.plotly_chart(fig_pie, use_container_width=True)
 
     # fig_status_pie = px.pie(
@@ -433,21 +430,17 @@ def show_clients_tab(people):
             .reset_index(name="Count")
             .sort_values("Last Contacted")
         )
+        with lin:
+            fig_trend = px.line(
+                trend_df,
+                x="Last Contacted",
+                y="Count",
+                color="Status",
+                markers=True,
+                title="📅 Weekly Contacted Clients by Status",
+            )
 
-    with lin:
-        fig_trend = px.line(
-            trend_df,
-            x="Last Contacted",
-            y="Count",
-            color="Status",
-            markers=True,
-            title="📅 Weekly Contacted Clients by Status",
-        )
-
-        fig_trend.update_layout(xaxis_title="Week", yaxis_title="Client Count")
-        if filtered.empty:
-            st.warning("⚠️ No results match the current filter.")
-        else:
+            fig_trend.update_layout(xaxis_title="Week", yaxis_title="Client Count")
             st.plotly_chart(fig_trend, use_container_width=True)
 
     if filtered.empty:
