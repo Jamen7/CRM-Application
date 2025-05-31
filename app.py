@@ -353,12 +353,15 @@ def show_clients_tab(people):
 
     with st.expander("📋 Communication History"):
         logs = load_logs()
-        client_logs = logs[logs["Client ID"] == selected_client]
-
-        if client_logs.empty:
-            st.info("No notes logged yet for this client.")
+        if filtered.empty:
+            st.warning("⚠️ No results match the current filter.")
         else:
-            st.dataframe(client_logs.sort_values(by="Date", ascending=False))
+            client_logs = logs[logs["Client ID"] == selected_client]
+
+            if client_logs.empty:
+                st.info("No notes logged yet for this client.")
+            else:
+                st.dataframe(client_logs.sort_values(by="Date", ascending=False))
 
     # Charts
     if filtered.empty:
