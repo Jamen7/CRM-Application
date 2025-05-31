@@ -465,8 +465,8 @@ people = (
     people.merge(
         industry_revenue, how="left", left_on="LLM_Industry", right_on="Industry"
     )
-    .drop(columns=["Total Industry Revenue_y", "Industry_y", "Industry_x"])
-    .rename(columns={"Total Industry Revenue_x": "Total Industry Revenue"})
+    # .drop(columns=["Total Industry Revenue_y", "Industry_y", "Industry_x"])
+    # .rename(columns={"Total Industry Revenue_x": "Total Industry Revenue"})
 )
 # people.columns
 
