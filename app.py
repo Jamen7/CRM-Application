@@ -114,8 +114,14 @@ def show_companies_tab(companies):
         lat="Latitude",
         lon="Longitude",
         hover_name="Company Name",
-        hover_data=["Industry", "Revenue"],
-        color="Industry",  # optional
+        hover_data={
+            "Industry": True,
+            "Revenue": ":,.2f",
+            "Address": True,
+            "Latitude": False,  # Hide lat
+            "Longitude": False,
+        },
+        color="Industry",
         size_max=10,
         zoom=1,
         height=500,
@@ -355,6 +361,81 @@ def show_clients_tab(people):
             st.dataframe(client_logs.sort_values(by="Date", ascending=False))
 
     # Charts
+    status_counts = filtered["Status"].value_counts().reset_index()
+    status_counts.columns = ["Status", "Count"]
+
+    box1, box2 = st.columns(2)
+
+    with box1:
+        chart_type = st.selectbox(
+            "📊 Select Chart Type for Client Status",
+            options=["Bar Chart", "Donut Pie Chart"],
+            index=0,
+        )
+
+    bar, lin = st.columns(2)
+
+    with bar:
+        if chart_type == "Bar Chart":
+            fig_bar = px.bar(
+                status_counts,
+                x="Count",
+                y="Status",
+                orientation="h",
+                color="Status",
+                text="Count",
+                color_discrete_sequence=px.colors.qualitative.Safe,
+                title="📊 Client Status Overview (Bar)",
+            )
+            fig_bar.update_layout(yaxis_title="", xaxis_title="Clients")
+            st.plotly_chart(fig_bar, use_container_width=True)
+
+        elif chart_type == "Donut Pie Chart":
+            fig_pie = px.pie(
+                status_counts,
+                names="Status",
+                values="Count",
+                hole=0.4,
+                color_discrete_sequence=px.colors.qualitative.Safe,
+                title="🧭 Client Status Distribution (Donut)",
+            )
+            st.plotly_chart(fig_pie, use_container_width=True)
+
+    # fig_status_pie = px.pie(
+    #     status_counts,
+    #     values="Count",
+    #     names="Status",
+    #     title="🧭 Client Status Distribution",
+    #     hole=0.4,  # for donut style
+    # )
+
+    # st.plotly_chart(fig_status_pie, use_container_width=True)
+
+    # Merge latest contact info
+    latest_contacts_df = get_latest_contact_dates()
+    filtered = filtered.merge(latest_contacts_df, on="Client ID", how="left")
+
+    trend_df = (
+        filtered.dropna(subset=["Last Contacted"])
+        .groupby([pd.Grouper(key="Last Contacted", freq="W-MON"), "Status"])
+        .size()
+        .reset_index(name="Count")
+        .sort_values("Last Contacted")
+    )
+
+    with lin:
+        fig_trend = px.line(
+            trend_df,
+            x="Last Contacted",
+            y="Count",
+            color="Status",
+            markers=True,
+            title="📅 Weekly Contacted Clients by Status",
+        )
+
+        fig_trend.update_layout(xaxis_title="Week", yaxis_title="Client Count")
+        st.plotly_chart(fig_trend, use_container_width=True)
+
     personnel_counts = filtered["Company"].value_counts().reset_index()
     personnel_counts.columns = ["Company", "Count"]
     fig = px.bar(
@@ -365,10 +446,6 @@ def show_clients_tab(people):
         title="Personnel per Company",
     )
     st.plotly_chart(fig, use_container_width=True)
-
-    # Merge latest contact info
-    latest_contacts_df = get_latest_contact_dates()
-    filtered = filtered.merge(latest_contacts_df, on="Client ID", how="left")
 
     # Table
     st.subheader("Client List")
@@ -384,10 +461,14 @@ companies = load_companies()  # Your companies dataset
 industry_revenue = companies.groupby("Industry")["Revenue"].sum().reset_index().round(2)
 industry_revenue.rename(columns={"Revenue": "Total Industry Revenue"}, inplace=True)
 
-people = people.merge(
-    industry_revenue, how="left", left_on="LLM_Industry", right_on="Industry"
+people = (
+    people.merge(
+        industry_revenue, how="left", left_on="LLM_Industry", right_on="Industry"
+    )
+    .drop(columns=["Total Industry Revenue_y", "Industry_y", "Industry_x"])
+    .rename(columns={"Total Industry Revenue_x": "Total Industry Revenue"})
 )
-
+# people.columns
 
 tab = st.sidebar.radio("Navigate", ["Clients", "Companies"])
 # if tab == "Companies":
