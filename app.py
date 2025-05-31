@@ -461,13 +461,11 @@ companies = load_companies()  # Your companies dataset
 industry_revenue = companies.groupby("Industry")["Revenue"].sum().reset_index().round(2)
 industry_revenue.rename(columns={"Revenue": "Total Industry Revenue"}, inplace=True)
 
-people = (
-    people.merge(
+if "Total Industry Revenue" not in people.columns:
+    people = people.merge(
         industry_revenue, how="left", left_on="LLM_Industry", right_on="Industry"
-    )
-    # .drop(columns=["Total Industry Revenue_y", "Industry_y", "Industry_x"])
-    # .rename(columns={"Total Industry Revenue_x": "Total Industry Revenue"})
-)
+    ).drop(columns=["Industry"])
+
 # people.columns
 
 tab = st.sidebar.radio("Navigate", ["Clients", "Companies"])
