@@ -361,8 +361,11 @@ def show_clients_tab(people):
             st.dataframe(client_logs.sort_values(by="Date", ascending=False))
 
     # Charts
-    status_counts = filtered["Status"].value_counts().reset_index()
-    status_counts.columns = ["Status", "Count"]
+    if filtered.empty:
+        st.warning("⚠️ No results match the current filter.")
+    else:
+        status_counts = filtered["Status"].value_counts().reset_index()
+        status_counts.columns = ["Status", "Count"]
 
     box1, box2 = st.columns(2)
 
