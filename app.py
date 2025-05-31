@@ -391,7 +391,10 @@ def show_clients_tab(people):
                 title="📊 Client Status Overview (Bar)",
             )
             fig_bar.update_layout(yaxis_title="", xaxis_title="Clients")
-            st.plotly_chart(fig_bar, use_container_width=True)
+            if filtered.empty:
+                st.warning("⚠️ No results match the current filter.")
+            else:
+                st.plotly_chart(fig_bar, use_container_width=True)
 
         elif chart_type == "Donut Pie Chart":
             fig_pie = px.pie(
@@ -402,7 +405,10 @@ def show_clients_tab(people):
                 color_discrete_sequence=px.colors.qualitative.Safe,
                 title="🧭 Client Status Distribution (Donut)",
             )
-            st.plotly_chart(fig_pie, use_container_width=True)
+            if filtered.empty:
+                st.warning("⚠️ No results match the current filter.")
+            else:
+                st.plotly_chart(fig_pie, use_container_width=True)
 
     # fig_status_pie = px.pie(
     #     status_counts,
@@ -416,15 +422,17 @@ def show_clients_tab(people):
 
     # Merge latest contact info
     latest_contacts_df = get_latest_contact_dates()
-    filtered = filtered.merge(latest_contacts_df, on="Client ID", how="left")
-
-    trend_df = (
-        filtered.dropna(subset=["Last Contacted"])
-        .groupby([pd.Grouper(key="Last Contacted", freq="W-MON"), "Status"])
-        .size()
-        .reset_index(name="Count")
-        .sort_values("Last Contacted")
-    )
+    if filtered.empty:
+        st.warning("⚠️ No results match the current filter.")
+    else:
+        filtered = filtered.merge(latest_contacts_df, on="Client ID", how="left")
+        trend_df = (
+            filtered.dropna(subset=["Last Contacted"])
+            .groupby([pd.Grouper(key="Last Contacted", freq="W-MON"), "Status"])
+            .size()
+            .reset_index(name="Count")
+            .sort_values("Last Contacted")
+        )
 
     with lin:
         fig_trend = px.line(
@@ -437,10 +445,17 @@ def show_clients_tab(people):
         )
 
         fig_trend.update_layout(xaxis_title="Week", yaxis_title="Client Count")
-        st.plotly_chart(fig_trend, use_container_width=True)
+        if filtered.empty:
+            st.warning("⚠️ No results match the current filter.")
+        else:
+            st.plotly_chart(fig_trend, use_container_width=True)
 
-    personnel_counts = filtered["Company"].value_counts().reset_index()
-    personnel_counts.columns = ["Company", "Count"]
+    if filtered.empty:
+        st.warning("⚠️ No results match the current filter.")
+    else:
+        personnel_counts = filtered["Company"].value_counts().reset_index()
+        personnel_counts.columns = ["Company", "Count"]
+
     fig = px.bar(
         personnel_counts,
         x="Count",
@@ -448,11 +463,17 @@ def show_clients_tab(people):
         orientation="h",
         title="Personnel per Company",
     )
-    st.plotly_chart(fig, use_container_width=True)
+    if filtered.empty:
+        st.warning("⚠️ No results match the current filter.")
+    else:
+        st.plotly_chart(fig, use_container_width=True)
 
     # Table
     st.subheader("Client List")
-    st.dataframe(filtered, use_container_width=True)
+    if filtered.empty:
+        st.warning("⚠️ No results match the current filter.")
+    else:
+        st.dataframe(filtered, use_container_width=True)
 
 
 st.set_page_config(layout="wide")
