@@ -464,7 +464,7 @@ industry_revenue.rename(columns={"Revenue": "Total Industry Revenue"}, inplace=T
 if "Total Industry Revenue" not in people.columns:
     people = people.merge(
         industry_revenue, how="left", left_on="LLM_Industry", right_on="Industry"
-    )  # .drop(columns=["Industry"])
+    ).drop(columns=["Industry"])
 
 # people.columns
 
