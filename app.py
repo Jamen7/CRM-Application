@@ -483,6 +483,9 @@ if "Total Industry Revenue" not in people.columns:
         industry_revenue, how="left", left_on="LLM_Industry", right_on="Industry"
     ).drop(columns=["Industry"])
 
+if "Industry" in people.columns:
+    people = people.drop(columns=["Industry"])
+
 # people.columns
 
 tab = st.sidebar.radio("Navigate", ["Clients", "Companies"])
