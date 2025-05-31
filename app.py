@@ -449,16 +449,13 @@ def show_clients_tab(people):
         personnel_counts = filtered["Company"].value_counts().reset_index()
         personnel_counts.columns = ["Company", "Count"]
 
-    fig = px.bar(
-        personnel_counts,
-        x="Count",
-        y="Company",
-        orientation="h",
-        title="Personnel per Company",
-    )
-    if filtered.empty:
-        st.warning("⚠️ No results match the current filter.")
-    else:
+        fig = px.bar(
+            personnel_counts,
+            x="Count",
+            y="Company",
+            orientation="h",
+            title="Personnel per Company",
+        )
         st.plotly_chart(fig, use_container_width=True)
 
     # Table
