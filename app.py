@@ -12,6 +12,40 @@ import datetime
 LOG_FILE = "logs.csv"
 
 
+def init_db():
+    conn = sqlite3.connect("crm.db")
+    cursor = conn.cursor()
+
+    # Table to store client status and last contacted date
+    cursor.execute(
+        """
+    CREATE TABLE IF NOT EXISTS client_status (
+        client_id TEXT PRIMARY KEY,
+        status TEXT DEFAULT 'open',
+        last_contacted TEXT
+    )
+    """
+    )
+
+    # Table to store log notes
+    cursor.execute(
+        """
+    CREATE TABLE IF NOT EXISTS logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        client_id TEXT,
+        note TEXT,
+        timestamp TEXT
+    )
+    """
+    )
+
+    conn.commit()
+    conn.close()
+
+
+init_db()
+
+
 def load_logs():
     try:
         return pd.read_csv(LOG_FILE)
@@ -58,37 +92,6 @@ def get_latest_contact_dates():
     latest = logs.groupby("Client ID")["Date"].max().reset_index()
     latest.rename(columns={"Date": "Last Contacted"}, inplace=True)
     return latest
-
-
-def init_db():
-    conn = sqlite3.connect("crm.db")
-    cursor = conn.cursor()
-
-    # Table to store client status and last contacted date
-    cursor.execute(
-        """
-    CREATE TABLE IF NOT EXISTS client_status (
-        client_id TEXT PRIMARY KEY,
-        status TEXT DEFAULT 'open',
-        last_contacted TEXT
-    )
-    """
-    )
-
-    # Table to store log notes
-    cursor.execute(
-        """
-    CREATE TABLE IF NOT EXISTS logs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        client_id TEXT,
-        note TEXT,
-        timestamp TEXT
-    )
-    """
-    )
-
-    conn.commit()
-    conn.close()
 
 
 def update_status(client_id, new_status):
@@ -356,6 +359,60 @@ def show_clients_tab(people):
     #             f"LLM Industry updated to **{new_industry}** for {client_row['Client ID']}."
     #         )
 
+    st.subheader("🛠️ Select a client for action")
+    selected_client = st.selectbox("Choose a client:", people["Client ID"])
+
+    if selected_client:
+        person_info = people[people["Client ID"] == selected_client].iloc[0]
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown(f"**Name:** {person_info['Name']}")
+            st.markdown(f"**Company:** {person_info['Company']}")
+            st.markdown(f"**Current Status:** {person_info.get('status', 'open')}")
+            st.markdown(
+                f"**Last Contacted:** {person_info.get('last_contacted', 'N/A')}"
+            )
+
+        with col2:
+            # --- Status Update ---
+            new_status = st.selectbox(
+                "Update Status",
+                [
+                    "open",
+                    "contacted",
+                    "engaged",
+                    "negotiation",
+                    "won",
+                    "lost",
+                    "on hold",
+                ],
+            )
+            if st.button("✅ Update Status"):
+                update_status(selected_client, new_status)
+                st.success(f"Updated status to: {new_status}")
+
+            # --- Log Note ---
+            with st.expander("📝 Log a Call/Note"):
+                note = st.text_area("Add a note", height=100)
+                if st.button("📌 Save Note"):
+                    if note.strip():
+                        log_call(selected_client, note)
+                        st.success("Note logged and last contacted updated.")
+                    else:
+                        st.warning("Please enter a note before saving.")
+
+    # --- Show log history ---
+    st.markdown("### 📚 Interaction History")
+    history = logs_df[logs_df["client_id"] == selected_client]
+    if not history.empty:
+        st.dataframe(
+            history.sort_values("timestamp", ascending=False), use_container_width=True
+        )
+    else:
+        st.info("No interaction logs yet for this client.")
+
     st.subheader("\U0001f6e0\U0000fe0f Actions")
 
     left_col, right_col = st.columns(2)
@@ -549,7 +606,6 @@ def show_clients_tab(people):
         st.dataframe(filtered, use_container_width=True)
 
 
-init_db()
 st.set_page_config(layout="wide")
 
 # Load data
