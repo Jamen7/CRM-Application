@@ -391,32 +391,48 @@ def show_clients_tab(people):
             )
 
         with col2:
-            # --- Status Update ---
-            new_status = st.selectbox(
-                "Update Status",
-                [
-                    "open",
-                    "contacted",
-                    "engaged",
-                    "negotiation",
-                    "won",
-                    "lost",
-                    "on hold",
-                ],
+            st.markdown(f"**Current LLM Industry:** {person_info['LLM_Industry']}")
+            st.markdown(
+                f"**Total Industry Revenue:** {person_info['Total Industry Revenue']}"
             )
-            if st.button("✅ Update Status"):
+            st.markdown(
+                f"**Last Contated Date:** {person_info.get('Last Contacted', 'N/A')}"
+            )
+
+        left_col, right_col = st.columns(2)
+
+        # 🪪 Status Update (Left Column)
+        with left_col:
+            st.markdown("**Update Status**")
+            status_options = [
+                "open",
+                "contacted",
+                "engaged",
+                "negotiation",
+                "won",
+                "lost",
+                "on hold",
+            ]
+            new_status = st.selectbox("Select new status", status_options)
+            if st.button("\U00002757 Update Status"):
                 update_status(selected_client, new_status)
                 st.success(f"Updated status to: {new_status}")
 
-            # --- Log Note ---
-            with st.expander("📝 Log a Call/Note"):
-                note = st.text_area("Add a note", height=100)
-                if st.button("📌 Save Note"):
-                    if note.strip():
-                        log_call(selected_client, note)
-                        st.success("Note logged and last contacted updated.")
-                    else:
-                        st.warning("Please enter a note before saving.")
+        # 🏷️ Industry Override (Right Column)
+        with right_col:
+            st.markdown("**Review/Override Industry**")
+            new_industry = st.text_input("Enter correct industry", key="industry_input")
+            if (
+                st.button("\U00002705 Confirm Industry Update", key="industry_button")
+                and new_industry
+            ):
+                people.loc[people["Client ID"] == selected_client, "LLM_Industry"] = (
+                    new_industry
+                )
+                save_people(people)
+                st.success(
+                    f"✅ Industry updated to **{new_industry}** for {client_row['Client ID']}."
+                )
 
     # --- Log Note ---
     with st.expander("📝 Log a Call/Note"):
@@ -439,46 +455,6 @@ def show_clients_tab(people):
         st.info("No interaction logs yet for this client.")
 
     st.subheader("\U0001f6e0\U0000fe0f Actions")
-
-    left_col, right_col = st.columns(2)
-
-    # 🪪 Status Update (Left Column)
-    with left_col:
-        st.markdown("**Update Status**")
-        status_options = [
-            "open",
-            "contacted",
-            "engaged",
-            "negotiation",
-            "won",
-            "lost",
-            "on hold",
-        ]
-        new_status = st.selectbox(
-            "Select new status", status_options, key="status_select"
-        )
-        if st.button("\U00002757 Confirm Status Update", key="status_button"):
-            people.loc[people["Client ID"] == selected_client, "Status"] = new_status
-            save_people(people)
-            st.success(
-                f"✅ Status updated to **{new_status}** for {client_row['Client ID']}."
-            )
-
-    # 🏷️ Industry Override (Right Column)
-    with right_col:
-        st.markdown("**Review/Override Industry**")
-        new_industry = st.text_input("Enter correct industry", key="industry_input")
-        if (
-            st.button("\U00002705 Confirm Industry Update", key="industry_button")
-            and new_industry
-        ):
-            people.loc[people["Client ID"] == selected_client, "LLM_Industry"] = (
-                new_industry
-            )
-            save_people(people)
-            st.success(
-                f"✅ Industry updated to **{new_industry}** for {client_row['Client ID']}."
-            )
 
     # st.subheader("📞 Log Call / Note")
 
