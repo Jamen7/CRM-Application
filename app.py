@@ -445,7 +445,7 @@ def show_clients_tab(people):
                 st.warning("Please enter a note before saving.")
 
     # --- Show log history ---
-    st.markdown("### 📚 Interaction History")
+    st.markdown("### 📚 Communication History")
     history = logs_df[logs_df["client_id"] == selected_client]
     if not history.empty:
         st.dataframe(
