@@ -437,7 +437,7 @@ def show_clients_tab(people):
                     conn = sqlite3.connect("crm.db")
                     conn.execute(
                         "REPLACE INTO industry_overrides (client_id, overridden_industry) VALUES (?, ?)",
-                        (selected_client["Client ID"], new_industry),
+                        (selected_client["client_id"], new_industry),
                     )
                     conn.commit()
                     conn.close()
