@@ -574,29 +574,29 @@ def show_clients_tab(people):
 
     # Merge latest contact info
     latest_contacts_df = get_latest_contact_dates()
-    # if filtered.empty:
-    #     st.warning("⚠️ No results match the current filter.")
-    # else:
-    #     filtered = filtered.merge(latest_contacts_df, on="Client ID", how="left")
-    #     trend_df = (
-    #         filtered.dropna(subset=["Last Contacted"])
-    #         .groupby([pd.Grouper(key="Last Contacted", freq="W-MON"), "Status"])
-    #         .size()
-    #         .reset_index(name="Count")
-    #         .sort_values("Last Contacted")
-    #     )
-    #     with lin:
-    #         fig_trend = px.line(
-    #             trend_df,
-    #             x="Last Contacted",
-    #             y="Count",
-    #             color="Status",
-    #             markers=True,
-    #             title="📅 Weekly Contacted Clients by Status",
-    #         )
+    if filtered.empty:
+        st.warning("⚠️ No results match the current filter.")
+    else:
+        filtered = filtered.merge(latest_contacts_df, on="Client ID", how="left")
+        trend_df = (
+            filtered.dropna(subset=["Last Contacted"])
+            .groupby([pd.Grouper(key="Last Contacted", freq="W-MON"), "Status"])
+            .size()
+            .reset_index(name="Count")
+            .sort_values("Last Contacted")
+        )
+        with lin:
+            fig_trend = px.line(
+                trend_df,
+                x="Last Contacted",
+                y="Count",
+                color="Status",
+                markers=True,
+                title="📅 Weekly Contacted Clients by Status",
+            )
 
-    #         fig_trend.update_layout(xaxis_title="Week", yaxis_title="Client Count")
-    #         st.plotly_chart(fig_trend, use_container_width=True)
+            fig_trend.update_layout(xaxis_title="Week", yaxis_title="Client Count")
+            st.plotly_chart(fig_trend, use_container_width=True)
 
     if filtered.empty:
         st.warning("⚠️ No results match the current filter.")
