@@ -443,6 +443,8 @@ def show_clients_tab(people):
                     conn.close()
                     st.success("Industry updated!")
 
+        st.write("Selected client:", selected_client)
+
         # st.markdown("**Review/Override Industry**")
         # new_industry = st.text_input("Enter correct industry", key="industry_input")
         # if (
