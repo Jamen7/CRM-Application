@@ -385,7 +385,8 @@ def show_clients_tab(people):
 
     st.subheader("🛠️ Select a Client for Action")
     selected_client = st.selectbox(
-        "\U0001f9d1\u200d\U0001f4bc Choose a client:", people["Client ID"]
+        "\U0001f9d1\u200d\U0001f4bc Choose a client:",
+        options=filtered["Client ID"].unique(),
     )
 
     if selected_client:
