@@ -478,28 +478,28 @@ def show_clients_tab(people):
     # else:
     #     st.dataframe(client_logs.sort_values(by="Date", ascending=False))
 
-    with st.expander("📞 Log Call / Note"):
-        note = st.text_area("Add a note or call summary")
-        note_date = st.date_input("Date of contact", value=datetime.date.today())
+    # with st.expander("📞 Log Call / Note"):
+    #     note = st.text_area("Add a note or call summary")
+    #     note_date = st.date_input("Date of contact", value=datetime.date.today())
 
-        if st.button("Save Note"):
-            if note.strip():
-                save_log_entry(selected_client, note, note_date)
-                st.success("Note logged successfully!")
-            else:
-                st.warning("Please write a note before saving.")
+    #     if st.button("Save Note"):
+    #         if note.strip():
+    #             save_log_entry(selected_client, note, note_date)
+    #             st.success("Note logged successfully!")
+    #         else:
+    #             st.warning("Please write a note before saving.")
 
-    with st.expander("📋 Communication History"):
-        logs = load_logs()
-        if filtered.empty:
-            st.warning("⚠️ No results match the current filter.")
-        else:
-            client_logs = logs[logs["Client ID"] == selected_client]
+    # with st.expander("📋 Communication History"):
+    #     logs = load_logs()
+    #     if filtered.empty:
+    #         st.warning("⚠️ No results match the current filter.")
+    #     else:
+    #         client_logs = logs[logs["Client ID"] == selected_client]
 
-            if client_logs.empty:
-                st.info("No notes logged yet for this client.")
-            else:
-                st.dataframe(client_logs.sort_values(by="Date", ascending=False))
+    #         if client_logs.empty:
+    #             st.info("No notes logged yet for this client.")
+    #         else:
+    #             st.dataframe(client_logs.sort_values(by="Date", ascending=False))
 
     # Charts
     if filtered.empty:
