@@ -304,29 +304,29 @@ def show_clients_tab(people):
         )
 
     # Simulate row selection with a selectbox to choose a client
-    st.subheader("\U0001f9d1\u200d\U0001f4bc Select a Client for Action")
+    # st.subheader("\U0001f9d1\u200d\U0001f4bc Select a Client for Action")
 
-    if not filtered.empty:
-        selected_client = st.selectbox(
-            "Choose client", options=filtered["Client ID"].unique()
-        )
+    # if not filtered.empty:
+    #     selected_client = st.selectbox(
+    #         "Choose client", options=filtered["Client ID"].unique()
+    #     )
 
-        client_row = filtered[filtered["Client ID"] == selected_client].iloc[0]
+    #     client_row = filtered[filtered["Client ID"] == selected_client].iloc[0]
 
-        # Two-column layout for client details
-        col1, col2 = st.columns(2)
+    #     # Two-column layout for client details
+    #     col1, col2 = st.columns(2)
 
-        with col1:
-            st.markdown(f"**Company:** {client_row['Company']}")
-            st.markdown(f"**Job Title:** {client_row['Title']}")
-            st.markdown(
-                f"**Total Industry Revenue:** {client_row['Total Industry Revenue']}"
-            )
+    #     with col1:
+    #         st.markdown(f"**Company:** {client_row['Company']}")
+    #         st.markdown(f"**Job Title:** {client_row['Title']}")
+    #         st.markdown(
+    #             f"**Total Industry Revenue:** {client_row['Total Industry Revenue']}"
+    #         )
 
-        with col2:
-            st.markdown(f"**Current Status:** {client_row['Status']}")
-            st.markdown(f"**Current LLM Industry:** {client_row['LLM_Industry']}")
-            st.markdown(f"**Last Contated Date:** {client_row['Last Contacted']}")
+    #     with col2:
+    #         st.markdown(f"**Current Status:** {client_row['Status']}")
+    #         st.markdown(f"**Current LLM Industry:** {client_row['LLM_Industry']}")
+    #         st.markdown(f"**Last Contated Date:** {client_row['Last Contacted']}")
 
     # Action buttons
     # st.subheader("Actions")
@@ -374,8 +374,10 @@ def show_clients_tab(people):
     #             f"LLM Industry updated to **{new_industry}** for {client_row['Client ID']}."
     #         )
 
-    st.subheader("🛠️ Select a client for action")
-    selected_client = st.selectbox("Choose a client:", people["Client ID"])
+    st.subheader("🛠️ Select a Client for Action")
+    selected_client = st.selectbox(
+        "\U0001f9d1\u200d\U0001f4bc Choose a client:", people["Client ID"]
+    )
 
     if selected_client:
         person_info = people[people["Client ID"] == selected_client].iloc[0]
@@ -385,12 +387,10 @@ def show_clients_tab(people):
         with col1:
             st.markdown(f"**Name:** {person_info['Name']}")
             st.markdown(f"**Company:** {person_info['Company']}")
-            st.markdown(f"**Current Status:** {person_info.get('Status', 'open')}")
-            st.markdown(
-                f"**Last Contacted:** {person_info.get('Last Contacted', 'N/A')}"
-            )
+            st.markdown(f"**Job Title:** {person_info['Title']}")
 
         with col2:
+            st.markdown(f"**Current Status:** {person_info.get('Status', 'open')}")
             st.markdown(f"**Current LLM Industry:** {person_info['LLM_Industry']}")
             st.markdown(
                 f"**Total Industry Revenue:** {person_info['Total Industry Revenue']}"
