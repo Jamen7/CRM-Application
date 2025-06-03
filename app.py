@@ -7,7 +7,7 @@ import sqlite3
 
 # from datetime import datetime
 
-import datetime
+from datetime import datetime
 
 LOG_FILE = "logs.csv"
 
