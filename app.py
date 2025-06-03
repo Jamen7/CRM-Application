@@ -137,6 +137,17 @@ def get_status_and_logs():
     status_df = pd.read_sql_query("SELECT * FROM client_status", conn)
     logs_df = pd.read_sql_query("SELECT * FROM logs", conn)
     conn.close()
+
+    # Rename columns to prevent conflict
+    status_df.rename(
+        columns={"status": "Client Status", "last_contacted": "Last Contacted"},
+        inplace=True,
+    )
+
+    logs_df.rename(
+        columns={"note": "Call Note", "timestamp": "Call Timestamp"}, inplace=True
+    )
+
     return status_df, logs_df
 
 
@@ -370,9 +381,9 @@ def show_clients_tab(people):
         with col1:
             st.markdown(f"**Name:** {person_info['Name']}")
             st.markdown(f"**Company:** {person_info['Company']}")
-            st.markdown(f"**Current Status:** {person_info.get('status', 'open')}")
+            st.markdown(f"**Current Status:** {person_info.get('Status', 'open')}")
             st.markdown(
-                f"**Last Contacted:** {person_info.get('last_contacted', 'N/A')}"
+                f"**Last Contacted:** {person_info.get('Last Contacted', 'N/A')}"
             )
 
         with col2:
@@ -625,8 +636,14 @@ if "Industry" in people.columns:
 
 # people.columns
 
+# Drop existing columns if present
+for col in ["Status", "Last Contacted"]:
+    if col in people.columns:
+        people.drop(columns=col, inplace=True)
+
+
 status_df, logs_df = get_status_and_logs()
-# people = people.merge(status_df, on="Client ID", how="left")
+people = people.merge(status_df, on="Client ID", how="left")
 
 tab = st.sidebar.radio("Navigate", ["Clients", "Companies"])
 # if tab == "Companies":
