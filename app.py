@@ -626,7 +626,7 @@ if "Industry" in people.columns:
 # people.columns
 
 status_df, logs_df = get_status_and_logs()
-people = people.merge(status_df, on="Client ID", how="left")
+# people = people.merge(status_df, on="Client ID", how="left")
 
 tab = st.sidebar.radio("Navigate", ["Clients", "Companies"])
 # if tab == "Companies":
