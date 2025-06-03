@@ -140,7 +140,11 @@ def get_status_and_logs():
 
     # Rename columns to prevent conflict
     status_df.rename(
-        columns={"status": "Status", "last_contacted": "Last Contacted"},
+        columns={
+            "status": "Status",
+            "last_contacted": "Last Contacted",
+            "client_id": "Client ID",
+        },
         inplace=True,
     )
 
