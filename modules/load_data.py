@@ -29,7 +29,7 @@ def load_people(path="data/people_industry.csv"):
 
     # Merge override if any
     if not overrides_df.empty:
-        df.drop(columns=["LLM_Industry"], inplace=True, errors="ignore")
+        # df.drop(columns=["LLM_Industry"], inplace=True, errors="ignore")
         df = df.merge(overrides_df, on="Client ID", how="left")
         # Use override if available, else fallback to auto-assigned
         df["LLM_Industry"] = df["overridden_industry"].combine_first(df["LLM_Industry"])
