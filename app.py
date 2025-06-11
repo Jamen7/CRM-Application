@@ -73,22 +73,26 @@ def save_log_entry(client_id, note, date):
 
 
 def get_recent_contact_metrics(filtered_client_ids, days=7):
-    logs = load_logs()
-    if logs.empty or not filtered_client_ids:
-        return 0
+    # logs = load_logs()
+    # if logs.empty or not filtered_client_ids:
+    #     return 0
 
     # Convert to datetime
-    logs["Date"] = pd.to_datetime(logs["Date"], errors="coerce")
-
+    # logs["Date"] = pd.to_datetime(logs["Date"], errors="coerce")
+    filtered_client_ids["Last Contacted"] = pd.to_datetime(
+        filtered_client_ids["Last Contacted"], errors="coerce"
+    )
     # Filter logs to only relevant client IDs
-    logs = logs[logs["Client ID"].isin(filtered_client_ids)]
+    # logs = logs[logs["Client ID"].isin(filtered_client_ids)]
 
     # Get latest contact date per client
-    latest_contact = logs.groupby("Client ID")["Date"].max().reset_index()
-
+    latest_contact = (
+        filtered_client_ids.groupby("Client ID")["Last Contacted"].max().reset_index()
+    )
+    # filtered_client_ids.get('Last Contacted', 'N/A')
     # Filter based on recent days
     cutoff = pd.Timestamp.today() - pd.Timedelta(days=days)
-    recent_contacts = latest_contact[latest_contact["Date"] >= cutoff]
+    recent_contacts = latest_contact[latest_contact["Last Contacted"] >= cutoff]
 
     return len(recent_contacts)
 
@@ -307,13 +311,13 @@ def show_clients_tab(people):
     with met5:
         st.metric(
             "👥 Contacted in last 7 days",
-            get_recent_contact_metrics(filtered_client_ids, 7),
+            get_recent_contact_metrics(filtered, 7),
         )
 
     with met6:
         st.metric(
             "📆 Contacted in last 30 days",
-            get_recent_contact_metrics(filtered_client_ids, 30),
+            get_recent_contact_metrics(filtered, 30),
         )
 
     # Simulate row selection with a selectbox to choose a client
