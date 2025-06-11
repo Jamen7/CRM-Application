@@ -438,7 +438,7 @@ def show_clients_tab(people):
             new_industry = st.text_input("Enter correct industry", "")
 
             if st.button("💾 Save Industry Override"):
-                if new_industry:
+                try:
                     conn = sqlite3.connect("crm.db")
                     conn.execute(
                         "REPLACE INTO industry_overrides (client_id, overridden_industry) VALUES (?, ?)",
@@ -446,7 +446,10 @@ def show_clients_tab(people):
                     )
                     conn.commit()
                     conn.close()
-                    st.success("Industry updated!")
+                    st.success("Industry override saved for {person_info['Name']}")
+
+                except Exception as e:
+                    st.error(f"Error saving industry override: {e}")
 
         # st.write("Selected client:", selected_client)
 
