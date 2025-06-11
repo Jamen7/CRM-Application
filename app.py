@@ -391,6 +391,7 @@ def show_clients_tab(people):
     selected_client = st.selectbox(
         "\U0001f9d1\u200d\U0001f4bc Choose a client:",
         options=filtered["Client ID"].unique(),
+        key="client_select",
     )
 
     if selected_client:
@@ -435,7 +436,9 @@ def show_clients_tab(people):
         # 🏷️ Industry Override (Right Column)
         with right_col:
             st.markdown("#### 🏭 Review/Override LLM Industry")
-            new_industry = st.text_input("Enter correct industry", "")
+            new_industry = st.text_input(
+                "Enter correct industry", "", key="industry_input"
+            )
 
             if st.button("💾 Save Industry Override"):
                 try:
