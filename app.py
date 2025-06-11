@@ -9,7 +9,6 @@ import sqlite3
 
 from datetime import datetime
 
-st.info("App reloaded successfully at: " + str(datetime.now()))
 
 LOG_FILE = "logs.csv"
 
@@ -264,8 +263,8 @@ def show_companies_tab(companies):
 
 def show_clients_tab(people):
 
-    if st.button("🔄 Refresh"):
-        st.experimental_rerun()
+    # if st.button("🔄 Refresh"):
+    #     st.experimental_rerun()
 
     col_title, col_metric1, col_metric2 = st.columns([4, 1, 1])
 
@@ -639,6 +638,9 @@ def show_clients_tab(people):
 
 
 st.set_page_config(layout="wide")
+
+st.info("App reloaded successfully at: " + str(datetime.now()))
+
 
 # Load data
 people = load_people()

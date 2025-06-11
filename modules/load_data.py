@@ -19,7 +19,7 @@ def load_people(path="data/people_industry.csv"):
 
     # Create a unique identifier per person
     df["Client ID"] = df["Name"].str.strip() + " @ " + df["Company"].str.strip()
-    df = df.drop_duplicates(subset="Client ID", keep="first")
+    # df = df.drop_duplicates(subset="Client ID", keep="first")
 
     conn = sqlite3.connect("crm.db")
     overrides_df = pd.read_sql("SELECT * FROM industry_overrides", conn)
@@ -29,13 +29,11 @@ def load_people(path="data/people_industry.csv"):
 
     # Merge override if any
     if not overrides_df.empty:
-        people.drop(columns=["LLM_Industry"], inplace=True, errors="ignore")
-        people = people.merge(overrides_df, on="Client ID", how="left")
+        # df.drop(columns=["LLM_Industry"], inplace=True, errors="ignore")
+        df = df.merge(overrides_df, on="Client ID", how="left")
         # Use override if available, else fallback to auto-assigned
-        people["LLM_Industry"] = people["overridden_industry"].combine_first(
-            people["LLM_Industry"]
-        )
-        people.drop(columns=["overridden_industry"], inplace=True, errors="ignore")
+        df["LLM_Industry"] = df["overridden_industry"].combine_first(df["LLM_Industry"])
+        df.drop(columns=["overridden_industry"], inplace=True, errors="ignore")
 
     return df
 
