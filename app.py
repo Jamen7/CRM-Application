@@ -495,10 +495,11 @@ def show_clients_tab(people):
 
     # --- Show log history ---
     st.markdown("### 📚 Communication History")
-    history = logs_df[logs_df["client_id"] == selected_client]
+    history = logs_df[logs_df["Client ID"] == selected_client]
     if not history.empty:
         st.dataframe(
-            history.sort_values("timestamp", ascending=False), use_container_width=True
+            history.sort_values("Call Timestamp", ascending=False),
+            use_container_width=True,
         )
     else:
         st.info("No interaction logs yet for this client.")
@@ -662,7 +663,7 @@ st.set_page_config(layout="wide")
 
 
 # Load data
-people = load_people()
+people, logs_df = load_people()
 companies = load_companies()  # Your companies dataset
 
 industry_revenue = companies.groupby("Industry")["Revenue"].sum().reset_index().round(2)
@@ -679,13 +680,13 @@ if "Industry" in people.columns:
 # people.columns
 
 # Drop existing columns if present
-for col in ["Status", "Last Contacted"]:
-    if col in people.columns:
-        people.drop(columns=col, inplace=True)
+# for col in ["Status", "Last Contacted"]:
+#     if col in people.columns:
+#         people.drop(columns=col, inplace=True)
 
 
-status_df, logs_df = get_status_and_logs()
-people = people.merge(status_df, on="Client ID", how="left")
+# status_df, logs_df = get_status_and_logs()
+# people = people.merge(status_df, on="Client ID", how="left")
 
 tab = st.sidebar.radio("Navigate", ["Clients", "Companies"])
 # if tab == "Companies":
