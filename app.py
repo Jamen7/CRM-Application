@@ -635,6 +635,9 @@ def show_clients_tab(people):
         st.dataframe(filtered, use_container_width=True)
 
 
+if st.button("🔄 Refresh"):
+    st.experimental_rerun()
+
 st.set_page_config(layout="wide")
 
 # Load data

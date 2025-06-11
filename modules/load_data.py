@@ -22,7 +22,7 @@ def load_people(path="data/people_industry.csv"):
     df = df.drop_duplicates(subset="Client ID", keep="first")
 
     conn = sqlite3.connect("crm.db")
-    overrides_df = pd.read_sql_query("SELECT * FROM industry_overrides", conn)
+    overrides_df = pd.read_sql("SELECT * FROM industry_overrides", conn)
     conn.close()
 
     overrides_df.rename(columns={"client_id": "Client ID"}, inplace=True)
@@ -32,12 +32,15 @@ def load_people(path="data/people_industry.csv"):
         people.drop(columns=["LLM_Industry"], inplace=True, errors="ignore")
         people = people.merge(overrides_df, on="Client ID", how="left")
         # Use override if available, else fallback to auto-assigned
-        people["LLM_Industry"] = people["overridden_industry"].fillna(
+        people["LLM_Industry"] = people["overridden_industry"].combine_first(
             people["LLM_Industry"]
         )
         people.drop(columns=["overridden_industry"], inplace=True, errors="ignore")
 
     return df
+
+
+load_people().columns
 
 
 def save_people(df, path="data/updated_people.xlsx"):
