@@ -97,14 +97,23 @@ def get_recent_contact_metrics(filtered_client_ids, days=7):
     return len(recent_contacts)
 
 
-def get_latest_contact_dates():
-    logs = load_logs()
-    if logs.empty:
-        return pd.DataFrame(columns=["Client ID", "Last Contacted"])
+def get_latest_contact_dates(filtered_client_ids):
+    # logs = load_logs()
+    # if logs.empty:
+    #     return pd.DataFrame(columns=["Client ID", "Last Contacted"])
 
-    logs["Date"] = pd.to_datetime(logs["Date"], errors="coerce")
-    latest = logs.groupby("Client ID")["Date"].max().reset_index()
-    latest.rename(columns={"Date": "Last Contacted"}, inplace=True)
+    # logs["Date"] = pd.to_datetime(logs["Date"], errors="coerce")
+    # latest = logs.groupby("Client ID")["Date"].max().reset_index()
+    # latest.rename(columns={"Date": "Last Contacted"}, inplace=True)
+
+    filtered_client_ids["Last Contacted"] = pd.to_datetime(
+        filtered_client_ids["Last Contacted"], errors="coerce"
+    )
+
+    # Get latest contact date per client
+    latest = (
+        filtered_client_ids.groupby("Client ID")["Last Contacted"].max().reset_index()
+    )
     return latest
 
 
@@ -599,30 +608,30 @@ def show_clients_tab(people):
     # st.plotly_chart(fig_status_pie, use_container_width=True)
 
     # Merge latest contact info
-    latest_contacts_df = get_latest_contact_dates()
-    # if filtered.empty:
-    #     st.warning("⚠️ No results match the current filter.")
-    # else:
-    #     filtered = filtered.merge(latest_contacts_df, on="Client ID", how="left")
-    #     trend_df = (
-    #         filtered.dropna(subset=["Last Contacted"])
-    #         .groupby([pd.Grouper(key="Last Contacted", freq="W-MON"), "Status"])
-    #         .size()
-    #         .reset_index(name="Count")
-    #         .sort_values("Last Contacted")
-    #     )
-    #     with lin:
-    #         fig_trend = px.line(
-    #             trend_df,
-    #             x="Last Contacted",
-    #             y="Count",
-    #             color="Status",
-    #             markers=True,
-    #             title="📅 Weekly Contacted Clients by Status",
-    #         )
+    latest_contacts_df = get_latest_contact_dates(filtered)
+    if filtered.empty:
+        st.warning("⚠️ No results match the current filter.")
+    else:
+        # filtered = filtered.merge(latest_contacts_df, on="Client ID", how="left")
+        trend_df = (
+            filtered.dropna(subset=["Last Contacted"])
+            .groupby([pd.Grouper(key="Last Contacted", freq="W-MON"), "Status"])
+            .size()
+            .reset_index(name="Count")
+            .sort_values("Last Contacted")
+        )
+        with lin:
+            fig_trend = px.line(
+                trend_df,
+                x="Last Contacted",
+                y="Count",
+                color="Status",
+                markers=True,
+                title="📅 Weekly Contacted Clients by Status",
+            )
 
-    #         fig_trend.update_layout(xaxis_title="Week", yaxis_title="Client Count")
-    #         st.plotly_chart(fig_trend, use_container_width=True)
+            fig_trend.update_layout(xaxis_title="Week", yaxis_title="Client Count")
+            st.plotly_chart(fig_trend, use_container_width=True)
 
     if filtered.empty:
         st.warning("⚠️ No results match the current filter.")

@@ -37,7 +37,7 @@ def load_people(path="data/people_industry.csv"):
     return df
 
 
-load_people().columns
+# load_people().columns
 
 
 def save_people(df, path="data/updated_people.xlsx"):
