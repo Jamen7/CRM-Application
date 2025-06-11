@@ -9,6 +9,8 @@ import sqlite3
 
 from datetime import datetime
 
+st.info("App reloaded successfully at: " + str(pd.Timestamp.now()))
+
 LOG_FILE = "logs.csv"
 
 
