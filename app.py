@@ -635,9 +635,6 @@ def show_clients_tab(people):
         st.dataframe(filtered, use_container_width=True)
 
 
-if st.button("🔄 Refresh"):
-    st.experimental_rerun()
-
 st.set_page_config(layout="wide")
 
 # Load data
@@ -669,7 +666,8 @@ people = people.merge(status_df, on="Client ID", how="left")
 tab = st.sidebar.radio("Navigate", ["Clients", "Companies"])
 # if tab == "Companies":
 #     show_companies_tab()
-
+if st.button("🔄 Refresh"):
+    st.experimental_rerun()
 # Clear and isolate page layout
 st.markdown("---")
 st.markdown("<style>body {overflow-x: hidden;}</style>", unsafe_allow_html=True)
