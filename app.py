@@ -642,7 +642,7 @@ def show_clients_tab(people):
 
 st.set_page_config(layout="wide")
 
-st.info("App reloaded successfully at: " + str(datetime.now()))
+# st.info("App reloaded successfully at: " + str(datetime.now()))
 
 
 # Load data
