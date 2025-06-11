@@ -19,7 +19,7 @@ def load_people(path="data/people_industry.csv"):
 
     # Create a unique identifier per person
     df["Client ID"] = df["Name"].str.strip() + " @ " + df["Company"].str.strip()
-    # df = df.drop_duplicates(subset="Client ID", keep="first")
+    df = df.drop_duplicates(subset="Client ID", keep="first")
 
     conn = sqlite3.connect("crm.db")
     overrides_df = pd.read_sql("SELECT * FROM industry_overrides", conn)
